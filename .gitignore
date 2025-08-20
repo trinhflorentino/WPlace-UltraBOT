@@ -1,1 +1,3 @@
 node_modules/
+db/accounts.json
+db/settings.json

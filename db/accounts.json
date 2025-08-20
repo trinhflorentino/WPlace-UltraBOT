@@ -53,7 +53,7 @@
     "id": 1755525486945,
     "name": "n1",
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjg1OTI1MjIsInNlc3Npb25JZCI6IjhOb3JIaUZCUVJYcXVGYVBScVB5TkozTnlYQlFHS082Q3RWMWhRZVNtUkk9IiwiaXNzIjoid3BsYWNlIiwiZXhwIjoxNzU4MTEwMjg3LCJpYXQiOjE3NTU1MTgyODd9.MzaKoqc1MKoReh8WL6cWxj3sORpOrStAEPmI8TwBIOY",
-    "pixelCount": 43,
+    "pixelCount": 109,
     "pixelMax": 186,
     "active": true,
     "droplets": 905,
@@ -105,7 +105,7 @@
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjg2NDUzMDQsInNlc3Npb25JZCI6IlNpd2xOSHg1UDhnRWNidUppRUVIazRMLTlHaklxMXRnYXc5djhuNWRncjg9IiwiaXNzIjoid3BsYWNlIiwiZXhwIjoxNzU4MTE4NjI0LCJpYXQiOjE3NTU1MjY2MjR9.lbe13TJleXIDfpdgSIpT3bHajpO_WUQa8jOHH4BmjEM",
     "pixelCount": 175,
     "pixelMax": 175,
-    "active": false,
+    "active": true,
     "droplets": 306,
     "extraColorsBitmap": 0
   },
@@ -115,7 +115,7 @@
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjg2NTAzNzEsInNlc3Npb25JZCI6Ik5EX09TaTRNLW1xSWZCN3hYa1FfcUd1dGJZWGtPbFA1S1ZrTnU1Z3BaZ0E9IiwiaXNzIjoid3BsYWNlIiwiZXhwIjoxNzU4MTE5NDY1LCJpYXQiOjE3NTU1Mjc0NjV9.jSAY1IO-eVgxcSHBZs12X-TFt1HjMCW056qMK2xT478",
     "pixelCount": 175,
     "pixelMax": 175,
-    "active": false,
+    "active": true,
     "droplets": 267,
     "extraColorsBitmap": 0
   }
