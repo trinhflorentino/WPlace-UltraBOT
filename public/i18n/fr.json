@@ -17,6 +17,14 @@
     "selectMode": {
       "multi": "Sélection depuis le départ",
       "frame": "Sélection depuis le cadre"
+    },
+    "autoMode": {
+      "on": "Mode auto activé",
+      "off": "Mode auto désactivé"
+    },
+    "autoStart": {
+      "on": "Démarrage auto activé",
+      "off": "Démarrage auto désactivé"
     }
   },
   "modal": {
@@ -49,7 +57,8 @@
     "worldXLabel": "World X",
     "worldYLabel": "World Y",
     "fetchButton": "Récupérer",
-    "uploadImage": "Téléverser une image"
+    "uploadImage": "Téléverser une image",
+    "mosaicButton": "Mosaïque"
   },
   "preview": {
     "scale": "Échelle (%)",
@@ -59,10 +68,25 @@
     "fillBackground": "Remplir l’arrière-plan",
     "color": "Couleur",
     "addToMap": "Ajouter à la carte",
-    "maxSizeExceeded": "La taille maximale est de 1000x1000 pixels."
+    "maxSizeExceeded": "La taille maximale est de 1000x1000 pixels.",
+    "alphaThreshold": "Transparence",
+    "colorMetric": "Algorithme couleur",
+    "metricRgb": "RGB (fast)",
+    "metricLab": "Lab (CIE76)",
+    "metricOklab": "Oklab",
+    "metricCiede2000": "CIEDE2000 (more accurate, slower)",
+    "dithering": "Dithering",
+    "ditheringOn": "Dithering: ON",
+    "ditheringOff": "Dithering: OFF"
   },
   "settings": {
     "cf_clearance": "cf_clearance"
+  },
+  "mosaic": {
+    "title": "Mosaïque",
+    "use2": "Utiliser 2 coord",
+    "use4": "Utiliser 4 coord",
+    "fetch": "Récupérer"
   },
   "buttons": {
     "back": "Retour",
@@ -93,7 +117,7 @@
     "premiumTitle": "Couleurs Premium",
     "purchased": "Couleurs achetées",
     "exclusive": "Palette exclusive",
-    "buyPremium": "💧 2000 Gouttes",
+    "buyPremium": "💧 2000 Droplets",
     "itemsTitle": "Articles",
     "itemsSub": "Obtenir plus de charges",
     "maxTitle": "+5 Charges Max.",
@@ -126,7 +150,8 @@
     "cfCannotBeClearedWithAccounts": "cf_clearance ne peut pas être vide si des comptes existent.",
     "cfClearanceChange": "Veuillez changer cf_clearance.",
     "purchaseSuccess": "Achat réussi",
-    "purchaseFail": "Échec de l'achat"
+    "purchaseFail": "Échec de l'achat",
+    "tokenPastedFromExtension": "Jeton collé depuis l’extension"
   }
 }
 

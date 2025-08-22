@@ -12,7 +12,7 @@
 ---
 
 > [!NOTE]
-> **Bonjour, après l’introduction de nouvelles mesures, j’ai décidé de développer ce bot et il a été terminé en une seule journée. En raison de ces mesures, il semble pour l’instant impossible de créer un bot entièrement automatisé. Cependant, grâce à une vulnérabilité actuelle, nous pouvons dessiner depuis 12 comptes en une seconde avec une seule vérification. En supposant que les comptes soient pleins, nous pouvons envoyer 12 * 62 = <strong>744</strong> pixels par seconde. Si vous êtes prêt, j’explique ci-dessous comment l’utiliser.**
+> **Bonjour, après l’introduction de nouvelles mesures, j’ai décidé de développer ce bot, terminé en une seule journée. En raison de ces mesures, il semble pour l’instant impossible de créer un bot entièrement automatisé. ~~Grâce à une faille, il était possible de dessiner depuis 12 comptes en une seconde avec une seule vérification (soit 12 * 62 = <strong>744</strong> pixels/s si les comptes étaient pleins).~~ Après une mise à jour, cette faille a été corrigée ; vous devrez donc obtenir un jeton à nouveau pour chaque envoi de compte. Si vous êtes prêt, j’explique ci‑dessous comment l’utiliser.**
 
 ---
 
@@ -88,7 +88,9 @@ Cliquez sur `cf_clearance` et copiez sa valeur en bas.<br>
 ![Partie 4](https://i.imgur.com/sJvyiC6.png)
 
 Revenez sur le bot.<br>
-Cliquez sur « Accounts », puis sur « Settings ». Collez la valeur copiée dans le champ `cf_clearance` et enregistrez.
+Cliquez sur « Accounts », puis sur « Add Account ». Collez la valeur copiée dans le champ `cf_clearance`.<br>
+Remarque !<br>
+Avec la dernière mise à jour, des contre‑mesures ont été mises en place ; vous devez désormais saisir une valeur `cf_clearance` pour chaque compte. Pour aller plus vite, ouvrez la page wplace.live dans un onglet de navigation privée et récupérez le jeton. Aucune connexion n’est nécessaire.
 
 ---
 

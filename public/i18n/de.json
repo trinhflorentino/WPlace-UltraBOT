@@ -17,6 +17,14 @@
     "selectMode": {
       "multi": "Ab Start wählen",
       "frame": "Aus Rahmen wählen"
+    },
+    "autoMode": {
+      "on": "Auto-Modus an",
+      "off": "Auto-Modus aus"
+    },
+    "autoStart": {
+      "on": "Auto-Start an",
+      "off": "Auto-Start aus"
     }
   },
   "modal": {
@@ -49,7 +57,8 @@
     "worldXLabel": "World X",
     "worldYLabel": "World Y",
     "fetchButton": "Abrufen",
-    "uploadImage": "Bild hochladen"
+    "uploadImage": "Bild hochladen",
+    "mosaicButton": "Mosaik"
   },
   "preview": {
     "scale": "Skalierung (%)",
@@ -59,10 +68,25 @@
     "fillBackground": "Hintergrund füllen",
     "color": "Farbe",
     "addToMap": "Zur Karte hinzufügen",
-    "maxSizeExceeded": "Maximale Größe ist 1000x1000 Pixel."
+    "maxSizeExceeded": "Maximale Größe ist 1000x1000 Pixel.",
+    "alphaThreshold": "Transparenz",
+    "colorMetric": "Farbalgorithmus",
+    "metricRgb": "RGB (fast)",
+    "metricLab": "Lab (CIE76)",
+    "metricOklab": "Oklab",
+    "metricCiede2000": "CIEDE2000 (more accurate, slower)",
+    "dithering": "Dithering",
+    "ditheringOn": "Dithering: ON",
+    "ditheringOff": "Dithering: OFF"
   },
   "settings": {
     "cf_clearance": "cf_clearance"
+  },
+  "mosaic": {
+    "title": "Mosaik",
+    "use2": "2 Koordinaten",
+    "use4": "4 Koordinaten",
+    "fetch": "Abrufen"
   },
   "buttons": {
     "back": "Zurück",
@@ -110,7 +134,8 @@
     "cfCannotBeClearedWithAccounts": "cf_clearance darf bei vorhandenen Konten nicht leer sein.",
     "cfClearanceChange": "Bitte cf_clearance ändern.",
     "purchaseSuccess": "Kauf erfolgreich",
-    "purchaseFail": "Kauf fehlgeschlagen"
+    "purchaseFail": "Kauf fehlgeschlagen",
+    "tokenPastedFromExtension": "Token aus Erweiterung eingefügt"
   },
   "paletteMode": {
     "premium": "Premium-Farbe verwenden",
@@ -120,7 +145,7 @@
     "premiumTitle": "Premiumfarben",
     "purchased": "Gekaufte Farben",
     "exclusive": "Exklusive Palette",
-    "buyPremium": "💧 2000 Tropfen",
+    "buyPremium": "💧 2000 Droplets",
     "itemsTitle": "Artikel",
     "itemsSub": "Weitere Ladungen erhalten",
     "maxTitle": "+5 Max. Ladungen",

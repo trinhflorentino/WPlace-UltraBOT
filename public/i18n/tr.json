@@ -17,6 +17,14 @@
     "selectMode": {
       "multi": "Önce başlangıçtan seç",
       "frame": "Önce çerçeveden seç"
+    },
+    "autoMode": {
+      "on": "Auto mode açık",
+      "off": "Auto mode kapalı"
+    },
+    "autoStart": {
+      "on": "Oto başlat açık",
+      "off": "Oto başlat kapalı"
     }
   },
   "modal": {
@@ -49,7 +57,8 @@
     "worldXLabel": "World X",
     "worldYLabel": "World Y",
     "fetchButton": "Getir",
-    "uploadImage": "Resim yükle"
+    "uploadImage": "Resim yükle",
+    "mosaicButton": "Mozaik"
   },
   "preview": {
     "scale": "Ölçek (%)",
@@ -59,10 +68,25 @@
     "fillBackground": "Arka planı doldur",
     "color": "Renk",
     "addToMap": "Haritaya ekle",
-    "maxSizeExceeded": "Maksimum boyut 1000x1000 piksel."
+    "maxSizeExceeded": "Maksimum boyut 1000x1000 piksel.",
+    "alphaThreshold": "Şeffaflık",
+    "colorMetric": "Renk algoritması",
+    "metricRgb": "RGB (fast)",
+    "metricLab": "Lab (CIE76)",
+    "metricOklab": "Oklab",
+    "metricCiede2000": "CIEDE2000 (more accurate, slower)",
+    "dithering": "Dithering",
+    "ditheringOn": "Dithering: ON",
+    "ditheringOff": "Dithering: OFF"
   },
   "settings": {
     "cf_clearance": "cf_clearance"
+  },
+  "mosaic": {
+    "title": "Mozaik",
+    "use2": "2 kord kullan",
+    "use4": "4 kord kullan",
+    "fetch": "Getir"
   },
   "buttons": {
     "back": "Geri",
@@ -83,7 +107,8 @@
   },
   "palette": {
     "transparentTitle": "Transparan (resim rengi)",
-    "colorTitle": "Renk #{id}"
+    "colorTitle": "Renk #{id}",
+    "premiumColorTitle": "Premium renk (kalan {remain}/{total})"
   },
   "paletteMode": {
     "premium": "Premium renk kullan",
@@ -113,8 +138,11 @@
     "tokenAlreadyExists": "Bu token ile daha önce hesap kaydedildi.",
     "cfCannotBeClearedWithAccounts": "Hesap varken cf_clearance boş bırakılamaz.",
     "cfClearanceChange": "Lütfen cf_clearance değiştirin.",
+    "premiumColorLimitReached": "Seçilen premium renk için yeterli kapasite yok.",
+    "accountNotFound": "Hesap bulunamadı",
     "purchaseSuccess": "Satın alım başarılı",
-    "purchaseFail": "Satın alım başarısız"
+    "purchaseFail": "Satın alım başarısız",
+    "tokenPastedFromExtension": "Token eklentiden yapıştırıldı"
   },
   "shop": {
     "premiumTitle": "Premium Renkler",

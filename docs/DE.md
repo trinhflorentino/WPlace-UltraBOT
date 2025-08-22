@@ -12,7 +12,7 @@
 ---
 
 > [!NOTE]
-> **Hallo, nachdem neue Maßnahmen eingeführt wurden, habe ich mich entschieden, diesen Bot zu entwickeln, und er war in nur einem Tag fertig. Aufgrund dieser Maßnahmen scheint es derzeit unmöglich, einen vollständig automatisierten Bot zu erstellen. Dank einer aktuellen Ausnutzung können wir jedoch mit einer einzigen Verifizierung in einer Sekunde aus 12 Konten zeichnen. Wenn die Konten voll sind, können wir 12 * 62 = <strong>744</strong> Pixel pro Sekunde senden. Wenn du bereit bist, habe ich unten erklärt, wie du ihn benutzt.**
+> **Hallo, nachdem neue Maßnahmen eingeführt wurden, habe ich mich entschieden, diesen Bot zu entwickeln, und er war in nur einem Tag fertig. Aufgrund dieser Maßnahmen scheint es derzeit unmöglich, einen vollständig automatisierten Bot zu erstellen. ~~Dank einer damaligen Schwachstelle konnten wir mit einer einzigen Verifizierung in einer Sekunde aus 12 Konten zeichnen. Bei vollen Konten wären das 12 * 62 = <strong>744</strong> Pixel pro Sekunde.~~ Nach einem Update wurde diese Lücke geschlossen; daher musst du für jede Kontoeinsendung erneut einen Token erhalten. Wenn du bereit bist, habe ich unten erklärt, wie du ihn benutzt.**
 
 ---
 
@@ -88,7 +88,9 @@ Klicke auf `cf_clearance` und kopiere den Wert unten.<br>
 ![Teil 4](https://i.imgur.com/sJvyiC6.png)
 
 Gehe zurück zum Bot.<br>
-Klicke auf die Schaltfläche „Accounts“ und dann auf „Settings“. Füge den kopierten Wert in das Feld `cf_clearance` ein und speichere.
+Klicke auf „Accounts“ und dann auf „Add Account“. Füge den kopierten Wert in das Feld `cf_clearance` ein.<br>
+Hinweis!<br>
+Mit dem neuesten Update wurden Gegenmaßnahmen eingeführt; daher musst du jetzt für jedes Konto einen `cf_clearance`-Wert eingeben. Am schnellsten geht es, wenn du die Seite wplace.live in einem Inkognito-Tab öffnest und dort den Token holst. Eine Anmeldung ist nicht erforderlich.
 
 ---
 

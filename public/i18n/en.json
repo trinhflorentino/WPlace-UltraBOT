@@ -17,6 +17,14 @@
     "selectMode": {
       "multi": "Select from start",
       "frame": "Select from outline"
+    },
+    "autoMode": {
+      "on": "Auto mode on",
+      "off": "Auto mode off"
+    },
+    "autoStart": {
+      "on": "Auto start on",
+      "off": "Auto start off"
     }
   },
   "modal": {
@@ -49,7 +57,8 @@
     "worldXLabel": "World X",
     "worldYLabel": "World Y",
     "fetchButton": "Fetch",
-    "uploadImage": "Upload image"
+    "uploadImage": "Upload image",
+    "mosaicButton": "Mosaic"
   },
   "preview": {
     "scale": "Scale (%)",
@@ -59,10 +68,25 @@
     "fillBackground": "Fill background",
     "color": "Color",
     "addToMap": "Add to map",
-    "maxSizeExceeded": "Maximum size is 1000x1000 pixels."
+    "maxSizeExceeded": "Maximum size is 1000x1000 pixels.",
+    "alphaThreshold": "Transparency",
+    "colorMetric": "Color algorithm",
+    "metricRgb": "RGB (fast)",
+    "metricLab": "Lab (CIE76)",
+    "metricOklab": "Oklab",
+    "metricCiede2000": "CIEDE2000 (more accurate, slower)",
+    "dithering": "Dithering",
+    "ditheringOn": "Dithering: ON",
+    "ditheringOff": "Dithering: OFF"
   },
   "settings": {
     "cf_clearance": "cf_clearance"
+  },
+  "mosaic": {
+    "title": "Mosaic",
+    "use2": "Use 2 coords",
+    "use4": "Use 4 coords",
+    "fetch": "Fetch"
   },
   "buttons": {
     "back": "Back",
@@ -83,7 +107,8 @@
   },
   "palette": {
     "transparentTitle": "Transparent (image color)",
-    "colorTitle": "Color #{id}"
+    "colorTitle": "Color #{id}",
+    "premiumColorTitle": "Premium color (remain {remain}/{total})"
   },
   "paletteMode": {
     "premium": "Use premium color",
@@ -113,8 +138,11 @@
     "tokenAlreadyExists": "An account with this token already exists.",
     "cfCannotBeClearedWithAccounts": "cf_clearance cannot be left empty while accounts exist.",
     "cfClearanceChange": "Please change cf_clearance.",
+    "premiumColorLimitReached": "Not enough capacity for the selected premium color.",
+    "accountNotFound": "Account not found",
     "purchaseSuccess": "Purchase successful",
-    "purchaseFail": "Purchase failed"
+    "purchaseFail": "Purchase failed",
+    "tokenPastedFromExtension": "Token pasted from extension"
   },
   "shop": {
     "premiumTitle": "Premium Colors",
