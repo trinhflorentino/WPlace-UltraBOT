@@ -143,9 +143,16 @@ document.addEventListener('DOMContentLoaded', function() {
           }, function(removed) {
             deletedCount++;
             if (deletedCount === totalCookies) {
-              setStatus(`Đã xóa ${totalCookies} cookies cho wplace.live`);
+              setStatus(`Đã xóa ${totalCookies} cookies cho wplace.live - Đang refresh trang...`);
               // Reload cookie display
               loadCookies();
+              
+              // Refresh current tab if it's wplace.live
+              chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+                if (tabs[0] && tabs[0].url && tabs[0].url.includes('wplace.live')) {
+                  chrome.tabs.reload(tabs[0].id);
+                }
+              });
             }
           });
         });
