@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const toggleCapture = document.getElementById('toggle-capture');
   const toggleWrap = document.getElementById('toggle-capture-wrap');
   const toggleLabel = document.getElementById('toggle-capture-label');
+  const clearCookiesBtn = document.getElementById('clear-cookies');
 
   function setStatus(text) {
     if (!statusDiv) return;
@@ -118,6 +119,37 @@ document.addEventListener('DOMContentLoaded', function() {
           setStatus('Account token copied!');
         });
       }
+    });
+  }
+
+  // Clear all cookies for wplace.live
+  if (clearCookiesBtn) {
+    clearCookiesBtn.addEventListener('click', function() {
+      chrome.cookies.getAll({ domain: 'wplace.live' }, function(cookies) {
+        if (!cookies || cookies.length === 0) {
+          setStatus('No cookies found for wplace.live');
+          return;
+        }
+
+        let deletedCount = 0;
+        const totalCookies = cookies.length;
+
+        cookies.forEach(function(cookie) {
+          const url = (cookie.secure ? 'https://' : 'http://') + cookie.domain + cookie.path;
+          chrome.cookies.remove({
+            url: url,
+            name: cookie.name,
+            storeId: cookie.storeId
+          }, function(removed) {
+            deletedCount++;
+            if (deletedCount === totalCookies) {
+              setStatus(`Đã xóa ${totalCookies} cookies cho wplace.live`);
+              // Reload cookie display
+              loadCookies();
+            }
+          });
+        });
+      });
     });
   }
 });

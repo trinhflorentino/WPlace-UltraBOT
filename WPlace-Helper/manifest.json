@@ -12,7 +12,9 @@
   ],
   "host_permissions": [
     "https://wplace.live/*",
-    "https://*.wplace.live/*"
+    "https://*.wplace.live/*",
+    "http://wplace.live/*",
+    "http://*.wplace.live/*"
   ],
   "content_scripts": [
     {
