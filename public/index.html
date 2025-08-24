@@ -535,6 +535,34 @@
     .table-actions-row { display: flex; gap: 6px; }
     .table-actions-row .app-btn { flex: 1 1 0; min-width: 0; }
     
+    /* Sortable table styles */
+    .sortable {
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+      transition: background-color 0.15s ease;
+    }
+    .sortable:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+    .sort-icon {
+      display: inline-block;
+      margin-left: 4px;
+      font-size: 12px;
+      opacity: 0.6;
+      transition: opacity 0.15s ease;
+    }
+    .sortable:hover .sort-icon {
+      opacity: 1;
+    }
+    .sortable.sort-asc .sort-icon {
+      opacity: 1;
+      transform: rotate(180deg);
+    }
+    .sortable.sort-desc .sort-icon {
+      opacity: 1;
+    }
+    
     #app-toast-container { position: fixed; top: 16px; right: 16px; display: flex; flex-direction: column; gap: 10px; z-index: 2000; pointer-events: none; }
     .app-toast { pointer-events: auto; min-width: 260px; max-width: 380px; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 8px 30px rgba(0,0,0,0.35); backdrop-filter: blur(6px); color: #fff; display: flex; align-items: center; gap: 10px; animation: toast-in 200ms ease-out; }
     .app-toast.error { background: rgba(190, 24, 24, 0.9); }
@@ -888,11 +916,26 @@
             <table id="accounts-table" class="table table-dark table-striped table-hover table-sm align-middle mb-2">
               <thead>
                 <tr>
-                  <th data-i18n="table.accountName">Hesap ismi</th>
-                  <th data-i18n="table.accountToken">Hesap Tokeni</th>
-                  <th data-i18n="table.droplets">Droplets</th>
-                  <th data-i18n="table.pixelRight">Piksel Hakkı</th>
-                  <th data-i18n="table.status">Durum</th>
+                  <th class="sortable" data-sort="name" data-i18n="table.accountName">
+                    Hesap ismi
+                    <span class="sort-icon">↕</span>
+                  </th>
+                  <th class="sortable" data-sort="token" data-i18n="table.accountToken">
+                    Hesap Tokeni
+                    <span class="sort-icon">↕</span>
+                  </th>
+                  <th class="sortable" data-sort="droplets" data-i18n="table.droplets">
+                    Droplets
+                    <span class="sort-icon">↕</span>
+                  </th>
+                  <th class="sortable" data-sort="pixelRight" data-i18n="table.pixelRight">
+                    Piksel Hakkı
+                    <span class="sort-icon">↕</span>
+                  </th>
+                  <th class="sortable" data-sort="status" data-i18n="table.status">
+                    Durum
+                    <span class="sort-icon">↕</span>
+                  </th>
                   <th data-i18n="table.actions">İşlem</th>
                 </tr>
               </thead>
@@ -1894,6 +1937,10 @@
     let readyLockedItem = null;
     let accountsData = [];
     let readySelectedAccountIds = [];
+    
+    // Sorting variables for accounts table
+    let accountsSortField = 'status';
+    let accountsSortDirection = 'asc';
     const MAX_READY_ACCOUNTS = 12;
     let autoSelecting = false;
     let ACTIVE_PALETTE = null;
@@ -4682,6 +4729,10 @@ function loadImage(area, no, preserveView = false) {
     accountsBtn.addEventListener('click', async () => {
       accountsModal.hidden = false;
       setAccountsActiveTab();
+      // Initialize sorting after modal is shown
+      setTimeout(() => {
+        initializeSorting();
+      }, 100);
     });
     function showAccountForm() {
       if (!accountsSection || !accountFormSection) return;
@@ -5327,10 +5378,61 @@ function loadImage(area, no, preserveView = false) {
     }
     function renderAccountsTable(rows) {
       const sortedRows = Array.isArray(rows) ? rows.slice().sort((a, b) => {
-        const aActive = a && a.active !== false;
-        const bActive = b && b.active !== false;
-        if (aActive === bActive) return 0;
-        return aActive ? 1 : -1; // Inactive first
+          // Apply custom sorting based on current sort field and direction
+        let result = 0;
+        
+        switch (accountsSortField) {
+          case 'name':
+            const aName = (a && a.name) ? String(a.name).toLowerCase() : '';
+            const bName = (b && b.name) ? String(b.name).toLowerCase() : '';
+            result = aName.localeCompare(bName);
+            break;
+          case 'token':
+            const aToken = (a && a.token) ? String(a.token).toLowerCase() : '';
+            const bToken = (b && b.token) ? String(b.token).toLowerCase() : '';
+            result = aToken.localeCompare(bToken);
+            break;
+          case 'droplets':
+            const aDroplets = (a && a.droplets != null) ? Number(a.droplets) : -1;
+            const bDroplets = (b && b.droplets != null) ? Number(b.droplets) : -1;
+            if (!Number.isFinite(aDroplets) && !Number.isFinite(bDroplets)) result = 0;
+            else if (!Number.isFinite(aDroplets)) result = 1; // Put invalid values at the end
+            else if (!Number.isFinite(bDroplets)) result = -1;
+            else result = aDroplets - bDroplets;
+            break;
+          case 'pixelRight':
+            const aCount = (a && a.pixelCount != null) ? Number(a.pixelCount) : -1;
+            const bCount = (b && b.pixelCount != null) ? Number(b.pixelCount) : -1;
+            const aMax = (a && a.pixelMax != null) ? Number(a.pixelMax) : -1;
+            const bMax = (b && b.pixelMax != null) ? Number(b.pixelMax) : -1;
+            // Sort by count first, then by max
+            if (!Number.isFinite(aCount) && !Number.isFinite(bCount)) {
+              if (!Number.isFinite(aMax) && !Number.isFinite(bMax)) result = 0;
+              else if (!Number.isFinite(aMax)) result = 1;
+              else if (!Number.isFinite(bMax)) result = -1;
+              else result = aMax - bMax;
+            } else if (!Number.isFinite(aCount)) result = 1;
+            else if (!Number.isFinite(bCount)) result = -1;
+            else if (aCount !== bCount) {
+              result = aCount - bCount;
+            } else {
+              if (!Number.isFinite(aMax) && !Number.isFinite(bMax)) result = 0;
+              else if (!Number.isFinite(aMax)) result = 1;
+              else if (!Number.isFinite(bMax)) result = -1;
+              else result = aMax - bMax;
+            }
+            break;
+          case 'status':
+          default:
+            const aActive = a && a.active !== false;
+            const bActive = b && b.active !== false;
+            if (aActive === bActive) result = 0;
+            else result = aActive ? 1 : -1; // Inactive first
+            break;
+        }
+        
+        // Apply sort direction
+        return accountsSortDirection === 'desc' ? -result : result;
       }) : [];
       accountsData = sortedRows.slice();
       try { recomputeActivePalette(); } catch {}
@@ -5381,6 +5483,12 @@ function loadImage(area, no, preserveView = false) {
             if (!res.ok) return;
             const updated = await res.json();
             await loadAccounts();
+            // Cập nhật danh sách account trong ready popup nếu đang mở
+            try { 
+              if (readyPopup && !readyPopup.hidden) {
+                renderReadyAccountList();
+              }
+            } catch {}
           } catch {}
         });
         const shopBtn = document.createElement('button');
@@ -5397,6 +5505,12 @@ function loadImage(area, no, preserveView = false) {
             
           } catch {}
           try { await loadAccounts(); } catch {}
+          // Cập nhật danh sách account trong ready popup nếu đang mở
+          try { 
+            if (readyPopup && !readyPopup.hidden) {
+              renderReadyAccountList();
+            }
+          } catch {}
           try {
             const updated = Array.isArray(accountsData) ? accountsData.find(r => r && r.id === row.id) : null;
             const isActive = updated && updated.active !== false;
@@ -5412,6 +5526,12 @@ function loadImage(area, no, preserveView = false) {
           try {
             await fetch('/api/accounts/' + row.id, { method: 'DELETE' });
             await loadAccounts();
+            // Cập nhật danh sách account trong ready popup nếu đang mở
+            try { 
+              if (readyPopup && !readyPopup.hidden) {
+                renderReadyAccountList();
+              }
+            } catch {}
           } catch {}
         });
         rowTop.appendChild(editBtn);
@@ -5450,12 +5570,75 @@ function loadImage(area, no, preserveView = false) {
           try { checkFullnessNotify(); } catch {}
         }
       } catch {}
+      
+      // Update sort indicators after rendering
+      updateSortIndicators();
     }
+    
+    // Function to update sort indicators in table headers
+    function updateSortIndicators() {
+      const sortableHeaders = document.querySelectorAll('#accounts-table th.sortable');
+      sortableHeaders.forEach(header => {
+        const sortField = header.getAttribute('data-sort');
+        const sortIcon = header.querySelector('.sort-icon');
+        
+        // Remove all sort classes
+        header.classList.remove('sort-asc', 'sort-desc');
+        
+        // Add appropriate class based on current sort
+        if (sortField === accountsSortField) {
+          header.classList.add(accountsSortDirection === 'asc' ? 'sort-asc' : 'sort-desc');
+        }
+      });
+    }
+    
+    // Function to handle sort clicks
+    function handleSortClick(sortField) {
+      if (accountsSortField === sortField) {
+        // Toggle direction if same field
+        accountsSortDirection = accountsSortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        // New field, default to ascending
+        accountsSortField = sortField;
+        accountsSortDirection = 'asc';
+      }
+      
+      // Update indicators and re-render table
+      updateSortIndicators();
+      renderAccountsTable(accountsData);
+    }
+    
+    // Initialize sort event listeners
+    function initializeSorting() {
+      const sortableHeaders = document.querySelectorAll('#accounts-table th.sortable');
+      sortableHeaders.forEach(header => {
+        // Remove existing listeners to prevent duplicates
+        header.removeEventListener('click', header._sortClickHandler);
+        
+        // Create new click handler
+        header._sortClickHandler = () => {
+          const sortField = header.getAttribute('data-sort');
+          if (sortField) {
+            handleSortClick(sortField);
+          }
+        };
+        
+        header.addEventListener('click', header._sortClickHandler);
+      });
+      
+      // Set initial sort indicators
+      updateSortIndicators();
+    }
+    
     async function loadAccounts() {
       try {
         const res = await fetch('/api/accounts');
         const data = await res.json();
         if (Array.isArray(data)) renderAccountsTable(data);
+        // Initialize sorting after accounts are loaded
+        setTimeout(() => {
+          initializeSorting();
+        }, 100);
       } catch {}
     }
     async function refreshAccountById(accountId){
@@ -5463,6 +5646,12 @@ function loadImage(area, no, preserveView = false) {
         await fetch('/api/accounts/' + encodeURIComponent(String(accountId)) + '/refresh', { method: 'POST' });
       } catch {}
       try { await loadAccounts(); } catch {}
+      // Cập nhật danh sách account trong ready popup nếu đang mở
+      try { 
+        if (readyPopup && !readyPopup.hidden) {
+          renderReadyAccountList();
+        }
+      } catch {}
     }
     const BULK_REFRESH_PERIOD_MS = 90 * 1000;
     let lastBulkRefreshAt = 0;
@@ -5488,6 +5677,12 @@ function loadImage(area, no, preserveView = false) {
       } catch {}
       try { await loadAccounts(); } catch {}
       try { reloadCurrentBackground(); } catch {}
+      // Cập nhật danh sách account trong ready popup nếu đang mở
+      try { 
+        if (readyPopup && !readyPopup.hidden) {
+          renderReadyAccountList();
+        }
+      } catch {}
       finally {
         lastBulkRefreshAt = Date.now();
         bulkRefreshInFlight = false;
@@ -5554,6 +5749,12 @@ function loadImage(area, no, preserveView = false) {
           }
           await loadAccounts();
           showAccountList();
+          // Cập nhật danh sách account trong ready popup nếu đang mở
+          try { 
+            if (readyPopup && !readyPopup.hidden) {
+              renderReadyAccountList();
+            }
+          } catch {}
         } catch {}
       });
     }
@@ -5587,6 +5788,12 @@ function loadImage(area, no, preserveView = false) {
             });
             await fetch('/api/accounts/' + id + '/refresh', { method: 'POST' });
             await loadAccounts();
+            // Cập nhật danh sách account trong ready popup nếu đang mở
+            try { 
+              if (readyPopup && !readyPopup.hidden) {
+                renderReadyAccountList();
+              }
+            } catch {}
           } catch {}
         }, 800);
       });
@@ -6284,6 +6491,9 @@ function loadImage(area, no, preserveView = false) {
       readyBtn.addEventListener('click', async () => {
         try {
           await loadAccounts();
+          
+          // Cập nhật danh sách account trong ready popup
+          try { renderReadyAccountList(); } catch {}
           
           // Clear any leftover drag/ready state before toggling the popup
           try { readyMouseDownPt = null; } catch {}
