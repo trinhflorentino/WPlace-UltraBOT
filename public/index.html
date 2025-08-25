@@ -651,7 +651,9 @@
     .select-mode-label.active { color: #22d3ee; opacity: 1; }
     .select-mode-track { position: relative; width: 44px; height: 24px; border-radius: 9999px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.15); cursor: pointer; padding: 0; }
     .select-mode-knob { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 9999px; background: #e5e7eb; transition: transform 0.18s ease; }
+    .select-mode-track.on { background: rgba(34,211,238,0.35); border-color: rgba(34,211,238,0.45); }
     .select-mode-track.on .select-mode-knob { transform: translateX(20px); }
+    .shop-auto-wrap { margin-top: 6px; display: flex; align-items: center; justify-content: center; gap: 6px; }
     /* Auto mode controls reuse select-mode styles */
     #auto-mode-controls { justify-content: center; }
     .toggle { position: relative; display: inline-block; width: 44px; height: 24px; }
@@ -975,6 +977,10 @@
                 <button class="app-btn shop-qty-btn" id="shop-max-max" type="button">MAX</button>
               </div>
               <div class="shop-pill" id="shop-max-price" role="button" tabindex="0">💧 500 Droplets</div>
+              <div class="shop-auto-wrap">
+                <span class="select-mode-label" data-i18n="shop.autoBuy">Auto-buy</span>
+                <button class="select-mode-track" id="shop-max-auto" type="button" role="switch" aria-checked="false" aria-label="Auto-buy"><span class="select-mode-knob"></span></button>
+              </div>
             </div>
             <div class="shop-card" id="shop-card-recharge">
               <div class="shop-icon">🩸</div>
@@ -987,6 +993,10 @@
                 <button class="app-btn shop-qty-btn" id="shop-rec-max" type="button">MAX</button>
               </div>
               <div class="shop-pill" id="shop-rec-price">💧 500 Droplets</div>
+              <div class="shop-auto-wrap">
+                <span class="select-mode-label" data-i18n="shop.autoBuy">Auto-buy</span>
+                <button class="select-mode-track" id="shop-rec-auto" type="button" role="switch" aria-checked="false" aria-label="Auto-buy"><span class="select-mode-knob"></span></button>
+              </div>
             </div>
             <div class="shop-card" id="shop-card-premium">
               <div class="shop-icon">🌈</div>
@@ -1854,17 +1864,22 @@
         try { if (btn._mvInt) { clearInterval(btn._mvInt); btn._mvInt = null; } } catch {}
         try { if (btn._mvTmo) { clearTimeout(btn._mvTmo); btn._mvTmo = null; } } catch {}
       };
-      btn.addEventListener('click', (e) => { e.preventDefault(); moveSelectedBy(dx, dy, e && e.shiftKey ? 5 : 1); });
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (btn._skipNextClick) { btn._skipNextClick = false; return; }
+        moveSelectedBy(dx, dy, e && e.shiftKey ? 5 : 1);
+      });
       btn.addEventListener('pointerdown', (e) => {
         e.preventDefault();
         const step = e && e.shiftKey ? 5 : 1;
         moveSelectedBy(dx, dy, step);
+        btn._skipNextClick = true;
         try { btn.setPointerCapture(e.pointerId); } catch {}
         btn._mvTmo = setTimeout(() => {
           btn._mvInt = setInterval(() => moveSelectedBy(dx, dy, step), 50);
         }, 250);
       });
-      const end = () => { stop(); };
+      const end = () => { stop(); setTimeout(() => { btn._skipNextClick = false; }, 0); };
       btn.addEventListener('pointerup', end);
       btn.addEventListener('pointercancel', end);
       btn.addEventListener('pointerleave', end);
@@ -1957,6 +1972,8 @@
     const shopRecMaxBtn = document.getElementById('shop-rec-max');
     const shopRecQtyEl = document.getElementById('shop-rec-qty');
     const shopRecPriceEl = document.getElementById('shop-rec-price');
+    const shopMaxAutoBtn = document.getElementById('shop-max-auto');
+    const shopRecAutoBtn = document.getElementById('shop-rec-auto');
     const shopPremiumPaletteWrap = document.getElementById('shop-premium-palette');
     const shopPremiumOwnedWrap = document.getElementById('shop-premium-owned');
     const shopPremiumBuyBtn = document.getElementById('shop-premium-buy');
@@ -1973,6 +1990,8 @@
     const shopBackBtn = document.getElementById('btn-shop-back');
     const accountCfInput = document.getElementById('account-cf-input');
     let signDragging = false;
+    let resizingItem = null;
+    let resizeStartX = 0, resizeStartY = 0, resizeOrigW = 0, resizeOrigH = 0;
     let signWorldX = 0;
     let signWorldY = 0;
     let signWorldOffsetX = 0;
@@ -3296,6 +3315,15 @@
       '0100010',
       '1000001'
     ];
+    const PIX_ICON_RESIZE = [
+      '0000001',
+      '0000011',
+      '0000111',
+      '0001111',
+      '0011111',
+      '0111111',
+      '1111111'
+    ];
     function drawPixelIcon(ctx, pattern, x, y, pixelSize, color){
       ctx.save();
       ctx.fillStyle = color || '#ffffff';
@@ -3403,7 +3431,9 @@
             ctx.globalAlpha = 1;
             ctx.filter = 'none';
           }
-          ctx.drawImage(it.image, wx, wy);
+          const iw = Math.max(1, it.displayWidth || it.image.naturalWidth);
+          const ih = Math.max(1, it.displayHeight || it.image.naturalHeight);
+          ctx.drawImage(it.image, wx, wy, iw, ih);
           ctx.restore();
         }
       }
@@ -3413,6 +3443,8 @@
         if (it && it.image && it.image.complete) {
           const wx = (typeof it.worldX === 'number' ? it.worldX : 0);
           const wy = (typeof it.worldY === 'number' ? it.worldY : 0);
+          const iwSel = Math.max(1, it.displayWidth || it.image.naturalWidth);
+          const ihSel = Math.max(1, it.displayHeight || it.image.naturalHeight);
           const totalCount = (it && it.pixelCount != null) ? Number(it.pixelCount) : 0;
           let selectedCount = 0;
           try {
@@ -3422,7 +3454,7 @@
           const placedCount = countPlacedPixelsForItem(it);
           const label = String(placedCount) + '/' + String(totalCount) + ' PX - ' + String((totalCount > 0 ? (placedCount / totalCount * 100) : 0).toFixed(1)) + ' %';
           // Scale UI relative to image size: baseline = 100x100 → scale = 1 (capped at 5x)
-          const uiScale = Math.min(5, Math.max(0.1, Math.max(it.image.naturalWidth, it.image.naturalHeight) / 100));
+          const uiScale = Math.min(5, Math.max(0.1, Math.max(iwSel, ihSel) / 100));
           const pixelSize = 0.2 * uiScale;
           const padding = Math.max(0.2 * uiScale, Math.floor((0.5 * uiScale) / state.scale));
           const offset = 1 * uiScale;
@@ -3436,49 +3468,68 @@
       }
       const sel = signItems[selectedIndex];
       if (sel && sel.image && sel.image.complete && !dimSelectedWhileReadyOpen) {
+        const iwSel2 = Math.max(1, sel.displayWidth || sel.image.naturalWidth);
+        const ihSel2 = Math.max(1, sel.displayHeight || sel.image.naturalHeight);
         ctx.save();
         ctx.strokeStyle = '#22d3ee';
         ctx.lineWidth = 2 / state.scale;
         ctx.setLineDash([6 / state.scale, 6 / state.scale]);
-        ctx.strokeRect(sel.worldX || 0, sel.worldY || 0, sel.image.naturalWidth, sel.image.naturalHeight);
+        ctx.strokeRect(sel.worldX || 0, sel.worldY || 0, iwSel2, ihSel2);
         ctx.restore();
-        
+
         const wx0 = (sel.worldX || 0);
         const wy0 = (sel.worldY || 0);
-        // Scale lock/close icons relative to image size: baseline = 100x100 → scale = 1 (capped at 5x)
-        const uiScale2 = Math.min(5, Math.max(0.1, Math.max(sel.image.naturalWidth, sel.image.naturalHeight) / 100));
+        // Scale UI relative to image size: baseline = 100x100 → scale = 1 (capped at 5x)
+        const uiScale2 = Math.min(5, Math.max(0.1, Math.max(iwSel2, ihSel2) / 100));
         const pixelSize = 0.6 * uiScale2;
         const padding = Math.max(0.3 * uiScale2, Math.floor((0.5 * uiScale2) / state.scale));
-        const gap = padding * 10; 
+        const gap = padding * 10;
         const off = 1 * uiScale2;
         const lockPattern = sel.locked ? PIX_ICON_LOCK_CLOSED : PIX_ICON_LOCK_OPEN;
         const lockSize = measurePixelIcon(lockPattern, pixelSize);
         const delSize = measurePixelIcon(PIX_ICON_X, pixelSize);
+        const showResize = !(sel.locked || sel.lockedByReady);
+        const resizeSize = showResize ? measurePixelIcon(PIX_ICON_RESIZE, pixelSize) : { width: 0, height: 0 };
         const lockBgW = lockSize.width + padding * 2;
         const delBgW = delSize.width + padding * 2;
         const bgH = Math.max(lockSize.height, delSize.height) + padding * 2;
         const totalW = lockBgW + delBgW + gap;
-        let xRight = wx0 + sel.image.naturalWidth - off - totalW;
+        let xRight = wx0 + iwSel2 - off - totalW;
         let yTop = wy0 + off;
-        
+
         ctx.save();
         ctx.fillStyle = 'rgba(0,0,0,0.6)';
         const xLockBg = xRight;
         const xDelBg = xLockBg + lockBgW + gap;
         ctx.fillRect(xLockBg, yTop, lockBgW, bgH);
         ctx.fillRect(xDelBg, yTop, delBgW, bgH);
-        
+        let resizeBgW, resizeBgH, xResizeBg, yResizeBg, xResizeIcon, yResizeIcon;
+        if (showResize) {
+          resizeBgW = resizeSize.width + padding * 2;
+          resizeBgH = resizeSize.height + padding * 2;
+          xResizeBg = wx0 + iwSel2 - off - resizeBgW;
+          yResizeBg = wy0 + ihSel2 - off - resizeBgH;
+          ctx.fillRect(xResizeBg, yResizeBg, resizeBgW, resizeBgH);
+        }
+
         const xLockIcon = xLockBg + padding;
         const yIcons = yTop + padding;
         drawPixelIcon(ctx, lockPattern, xLockIcon, yIcons, pixelSize, '#ffffff');
-        
+
         const xDelIcon = xDelBg + padding;
         drawPixelIcon(ctx, PIX_ICON_X, xDelIcon, yIcons, pixelSize, '#ffffff');
+
+        if (showResize) {
+          xResizeIcon = xResizeBg + padding;
+          yResizeIcon = yResizeBg + padding;
+          drawPixelIcon(ctx, PIX_ICON_RESIZE, xResizeIcon, yResizeIcon, pixelSize, '#ffffff');
+        }
         ctx.restore();
-        
+
         sel._overlayRects = {
           lock: { x: xLockIcon, y: yIcons, w: lockSize.width, h: lockSize.height },
           del: { x: xDelIcon, y: yIcons, w: delSize.width, h: delSize.height },
+          resize: showResize ? { x: xResizeBg, y: yResizeBg, w: resizeBgW, h: resizeBgH } : null,
           bg: { x: xRight, y: yTop, w: totalW, h: bgH }
         };
       }
@@ -4020,8 +4071,8 @@ function loadImage(area, no, preserveView = false) {
         if (!it || !it.image || !it.image.complete) continue;
         const x = it.worldX || 0;
         const y = it.worldY || 0;
-        const w = it.image.naturalWidth;
-        const h = it.image.naturalHeight;
+        const w = Math.max(1, it.displayWidth || it.image.naturalWidth);
+        const h = Math.max(1, it.displayHeight || it.image.naturalHeight);
         if (worldX >= x && worldX <= x + w && worldY >= y && worldY <= y + h) {
           hitIndex = i;
           break;
@@ -4069,12 +4120,23 @@ function loadImage(area, no, preserveView = false) {
               
               deleteItem(it);
               render();
-              return; 
+              return;
             }
+          }
+          const rResize = it._overlayRects.resize;
+          if (!(it.locked || it.lockedByReady) && rResize && worldX >= rResize.x && worldX <= rResize.x + rResize.w && worldY >= rResize.y && worldY <= rResize.y + rResize.h) {
+            resizingItem = it;
+            resizeStartX = worldX;
+            resizeStartY = worldY;
+            resizeOrigW = Math.max(1, it.displayWidth || it.image.naturalWidth);
+            resizeOrigH = Math.max(1, it.displayHeight || it.image.naturalHeight);
+            document.body.classList.add('dragging');
+            return;
           }
         }
         if (!(it.locked || it.lockedByReady)) {
           signDragging = true;
+          // Preserve fractional click offset to avoid pixel jumps when dragging
           signWorldOffsetX = worldX - (it.worldX || 0);
           signWorldOffsetY = worldY - (it.worldY || 0);
         }
@@ -4122,6 +4184,19 @@ function loadImage(area, no, preserveView = false) {
             rightEraseLastKey = currentHoverKey();
           }
         }
+      }
+      if (resizingItem) {
+        const rect = canvas.getBoundingClientRect();
+        const px = e.clientX - rect.left;
+        const py = e.clientY - rect.top;
+        const worldX = (px - state.translateX) / state.scale;
+        const worldY = (py - state.translateY) / state.scale;
+        const newW = Math.max(1, resizeOrigW + Math.round(worldX - resizeStartX));
+        const newH = Math.max(1, resizeOrigH + Math.round(worldY - resizeStartY));
+        resizingItem.displayWidth = newW;
+        resizingItem.displayHeight = newH;
+        render();
+        return;
       }
       if (state.dragging) {
         if (rightEraseHeld) {
@@ -4232,6 +4307,16 @@ function loadImage(area, no, preserveView = false) {
       }
     });
     window.addEventListener('mouseup', (e) => {
+      if (resizingItem) {
+        const w = Math.max(1, resizingItem.displayWidth || resizingItem.image.naturalWidth);
+        const h = Math.max(1, resizingItem.displayHeight || resizingItem.image.naturalHeight);
+        resizingItem.displayWidth = null;
+        resizingItem.displayHeight = null;
+        applyResize(resizingItem, w, h);
+        resizingItem = null;
+        document.body.classList.remove('dragging');
+        return;
+      }
       if (isReadyOpen()) {// Ready mode
          
         if (readyMouseDownPt && !readyMouseMoved && e.button === 0) {
@@ -4524,6 +4609,34 @@ function loadImage(area, no, preserveView = false) {
       try { saveImagesToStorage(); } catch {}
     }
 
+    function applyResize(item, w, h) {
+      if (!item || !item.image) return;
+      if (!item.originalImage) item.originalImage = item.image;
+      const src = item.originalImage;
+      const off = document.createElement('canvas');
+      off.width = w; off.height = h;
+      const octx = off.getContext('2d', { willReadFrequently: true });
+      octx.imageSmoothingEnabled = false;
+      octx.drawImage(src, 0, 0, src.naturalWidth || src.width, src.naturalHeight || src.height, 0, 0, w, h);
+      const id = octx.getImageData(0, 0, w, h);
+      item._imageData = id;
+      let cnt = 0;
+      for (let i = 3; i < id.data.length; i += 4) { if (id.data[i] !== 0) cnt++; }
+      item.pixelCount = cnt;
+      off.naturalWidth = w; off.naturalHeight = h; off.complete = true;
+      const dataUrl = off.toDataURL('image/png');
+      item.image = off;
+      item.url = dataUrl;
+      item.dataUrl = dataUrl;
+      if (item.el) {
+        const im = item.el.querySelector('img');
+        if (im) im.src = dataUrl;
+      }
+      render();
+      updateCounter();
+      try { saveImagesToStorage(); } catch {}
+    }
+
     function zoomToSign(item) {
       if (!item || !item.image) return;
       const vw = canvas.clientWidth;
@@ -4687,7 +4800,7 @@ function loadImage(area, no, preserveView = false) {
             try {
               const imgEl = new Image();
               imgEl.onload = () => {
-                const item = { url: entry.dataUrl, dataUrl: entry.dataUrl, name: entry.name || 'image.png', image: imgEl, worldX: Number(entry.worldX || 0), worldY: Number(entry.worldY || 0), el: null, locked: !!entry.locked, pixelCount: countNonTransparentPixels(imgEl) };
+                const item = { url: entry.dataUrl, dataUrl: entry.dataUrl, name: entry.name || 'image.png', image: imgEl, originalImage: imgEl, worldX: Number(entry.worldX || 0), worldY: Number(entry.worldY || 0), el: null, locked: !!entry.locked, pixelCount: countNonTransparentPixels(imgEl) };
                 signItems.push(item);
                 addThumbForItem(item, signItems.length - 1);
                 updateCounter();
@@ -4715,7 +4828,7 @@ function loadImage(area, no, preserveView = false) {
           imgEl.onload = () => {
             const savedWX = parseFloat(localStorage.getItem('last.image.worldX') || '');
             const savedWY = parseFloat(localStorage.getItem('last.image.worldY') || '');
-            const item = { url: lastUrl, dataUrl: (lastUrl && lastUrl.startsWith('data:')) ? lastUrl : null, name: lastName, image: imgEl, worldX: 0, worldY: 0, el: null, locked: false, pixelCount: countNonTransparentPixels(imgEl) };
+            const item = { url: lastUrl, dataUrl: (lastUrl && lastUrl.startsWith('data:')) ? lastUrl : null, name: lastName, image: imgEl, originalImage: imgEl, worldX: 0, worldY: 0, el: null, locked: false, pixelCount: countNonTransparentPixels(imgEl) };
             if (!isNaN(savedWX)) item.worldX = savedWX;
             if (!isNaN(savedWY)) item.worldY = savedWY;
             try {
@@ -5217,12 +5330,17 @@ function loadImage(area, no, preserveView = false) {
         const unitMax = 500, unitRec = 500;
         if (shopMaxPriceEl) shopMaxPriceEl.textContent = '💧 ' + (unitMax * 1) + ' Droplets';
         if (shopRecPriceEl) shopRecPriceEl.textContent = '💧 ' + (unitRec * 1) + ' Droplets';
+        const maxNameEl = document.getElementById('shop-max-name');
+        if (maxNameEl) maxNameEl.textContent = t('shop.maxTitle');
+        const recNameEl = document.getElementById('shop-rec-name');
+        if (recNameEl) recNameEl.textContent = t('shop.recTitle');
       } catch {}
       // set account-specific premium colors bitmap for filtering
       try { shopExtraColorsBitmap = Number(row && row.extraColorsBitmap != null ? row.extraColorsBitmap : 0) || 0; } catch { shopExtraColorsBitmap = 0; }
       try { renderPremiumPalette(); } catch {}
       try { updateShopButtonsDisabled(); } catch {}
       try { shopSelectedPremiumColorId = null; updatePremiumPaletteSelectionUi(); } catch {}
+      try { updateShopAutobuyUi(); } catch {}
       try {
         if (shopPremiumBuyBtn) {
           shopPremiumBuyBtn.setAttribute('aria-disabled', 'true');
@@ -5362,10 +5480,47 @@ function loadImage(area, no, preserveView = false) {
       } catch {}
     }
 
+    function updateShopAutobuyUi(){
+      const val = shopCurrentAccount && shopCurrentAccount.autobuy;
+      try {
+        const onMax = val === 'max';
+        if (shopMaxAutoBtn) {
+          shopMaxAutoBtn.setAttribute('aria-checked', onMax ? 'true' : 'false');
+          shopMaxAutoBtn.classList.toggle('on', onMax);
+        }
+        const onRec = val === 'rec';
+        if (shopRecAutoBtn) {
+          shopRecAutoBtn.setAttribute('aria-checked', onRec ? 'true' : 'false');
+          shopRecAutoBtn.classList.toggle('on', onRec);
+        }
+      } catch {}
+    }
+
+    async function toggleAutobuy(which){
+      const account = shopCurrentAccount;
+      if (!account) return;
+      const newVal = account.autobuy === which ? null : which;
+      try {
+        const res = await fetch('/api/accounts/' + encodeURIComponent(String(account.id)), {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ autobuy: newVal })
+        });
+        const data = await res.json();
+        if (res.ok && data) {
+          shopCurrentAccount = data;
+          const idx = Array.isArray(accountsData) ? accountsData.findIndex(a => a && a.id === data.id) : -1;
+          if (idx !== -1) accountsData[idx] = data;
+          updateShopAutobuyUi();
+        }
+      } catch {}
+    }
+
     // Wire buttons
     if (shopMaxDecBtn) shopMaxDecBtn.addEventListener('click', () => changeQty('max', -1));
     if (shopMaxIncBtn) shopMaxIncBtn.addEventListener('click', () => changeQty('max', +1));
     if (shopMaxMaxBtn) shopMaxMaxBtn.addEventListener('click', () => setMaxAffordable('max'));
+    if (shopMaxAutoBtn) shopMaxAutoBtn.addEventListener('click', () => toggleAutobuy('max'));
     if (shopMaxPriceEl) shopMaxPriceEl.addEventListener('click', async () => {
       // Make purchase for +5 Max. Charges using amount from qty
       try {
@@ -5396,6 +5551,8 @@ function loadImage(area, no, preserveView = false) {
             const dRaw2 = updated && updated.droplets != null ? Number(updated.droplets) : null;
             shopCurrentDroplets = Number.isFinite(dRaw2) ? Math.floor(dRaw2) : 0;
             updateShopButtonsDisabled();
+            if (shopMaxQtyEl) shopMaxQtyEl.textContent = '1';
+            updatePrice('max');
           } catch {}
         } else {
           const msg = (data && data.error) ? String(data.error) : t('messages.purchaseFail');
@@ -5408,6 +5565,7 @@ function loadImage(area, no, preserveView = false) {
     if (shopRecDecBtn) shopRecDecBtn.addEventListener('click', () => changeQty('rec', -1));
     if (shopRecIncBtn) shopRecIncBtn.addEventListener('click', () => changeQty('rec', +1));
     if (shopRecMaxBtn) shopRecMaxBtn.addEventListener('click', () => setMaxAffordable('rec'));
+    if (shopRecAutoBtn) shopRecAutoBtn.addEventListener('click', () => toggleAutobuy('rec'));
     if (shopRecPriceEl) shopRecPriceEl.addEventListener('click', async () => {
       // Purchase +30 Paint Charges (product id 80) using rec qty
       try {
@@ -5438,6 +5596,8 @@ function loadImage(area, no, preserveView = false) {
             const dRaw2 = updated && updated.droplets != null ? Number(updated.droplets) : null;
             shopCurrentDroplets = Number.isFinite(dRaw2) ? Math.floor(dRaw2) : 0;
             updateShopButtonsDisabled();
+            if (shopRecQtyEl) shopRecQtyEl.textContent = '1';
+            updatePrice('rec');
           } catch {}
         } else {
           const msg = (data && data.error) ? String(data.error) : t('messages.purchaseFail');
@@ -6225,7 +6385,7 @@ function loadImage(area, no, preserveView = false) {
           const imageEl = new Image();
           imageEl.onload = () => {
             const pixelCount = countNonTransparentPixels(imageEl);
-            const item = { url, name: imgPreviewApply._filename || 'image.png', image: imageEl, worldX: 0, worldY: 0, el: null, locked: false, pixelCount };
+            const item = { url, name: imgPreviewApply._filename || 'image.png', image: imageEl, originalImage: imageEl, worldX: 0, worldY: 0, el: null, locked: false, pixelCount };
             const centerPx = getContentCenterPx();
             const centerWorldX = (centerPx.x - state.translateX) / state.scale;
             const centerWorldY = (centerPx.y - state.translateY) / state.scale;
@@ -6742,45 +6902,82 @@ function loadImage(area, no, preserveView = false) {
       const size = w * h;
       const idxOf = (x, y) => y * w + x;
       const mask = new Uint8Array(size);
-      
       for (let y = 0; y < h; y++) {
         for (let x = 0; x < w; x++) {
-          if (isOpaquePixel(selItem, x, y) && (selectedOverrideColorId != null || !isSamePaletteIdAsBase(selItem, x, y))) {
+          if (isOpaquePixel(selItem, x, y)) {
             mask[idxOf(x,y)] = 1;
           }
         }
       }
-      let added = 0;
-      const isBoundary = (x, y) => {
+      const layer = new Int32Array(size);
+      for (let i = 0; i < size; i++) layer[i] = -1;
+      const qx = new Int32Array(size);
+      const qy = new Int32Array(size);
+      let qh = 0, qt = 0;
+      function push(x, y, l){
         const i = idxOf(x,y);
-        if (mask[i] === 0) return false;
-        if (x === 0 || mask[i-1] === 0) return true;
-        if (x === w-1 || mask[i+1] === 0) return true;
-        if (y === 0 || mask[i-w] === 0) return true;
-        if (y === h-1 || mask[i+w] === 0) return true;
-        return false;
-      };
-      while (added < need) {
-        const boundary = [];
-        for (let y = 0; y < h; y++) {
-          for (let x = 0; x < w; x++) {
-            if (isBoundary(x, y)) boundary.push({ x, y });
+        layer[i] = l;
+        qx[qt] = x; qy[qt] = y; qt++;
+      }
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const i = idxOf(x,y);
+          if (!mask[i]) continue;
+          if (x === 0 || x === w-1 || y === 0 || y === h-1 ||
+              !mask[idxOf(x-1,y)] || !mask[idxOf(x+1,y)] ||
+              !mask[idxOf(x,y-1)] || !mask[idxOf(x,y+1)]) {
+            push(x, y, 0);
           }
         }
-        if (boundary.length === 0) break;
-        for (let k = 0; k < boundary.length && added < need; k++) {
-          const p = boundary[k];
-          if (selectedOverrideColorId != null && selectedOverrideColorId !== 0 && isPremiumColorId(selectedOverrideColorId)){
-            const remain = getPremiumColorRemainingLimit(selectedOverrideColorId);
-            if (!(remain > 0)) { added = need; break; }
-          }
-          const did = addPixelSelection(selItem, p.x, p.y, selectedOverrideColorId != null ? selectedOverrideColorId : null);
-          if (did) added++;
+      }
+      while (qh < qt) {
+        const x = qx[qh];
+        const y = qy[qh];
+        const l = layer[idxOf(x,y)];
+        qh++;
+        const nl = l + 1;
+        if (x > 0) {
+          const i = idxOf(x-1,y);
+          if (mask[i] && layer[i] === -1) push(x-1, y, nl);
         }
-        for (let k = 0; k < boundary.length; k++) {
-          const p = boundary[k];
-          mask[idxOf(p.x, p.y)] = 0;
+        if (x < w-1) {
+          const i = idxOf(x+1,y);
+          if (mask[i] && layer[i] === -1) push(x+1, y, nl);
         }
+        if (y > 0) {
+          const i = idxOf(x,y-1);
+          if (mask[i] && layer[i] === -1) push(x, y-1, nl);
+        }
+        if (y < h-1) {
+          const i = idxOf(x,y+1);
+          if (mask[i] && layer[i] === -1) push(x, y+1, nl);
+        }
+      }
+      const buckets = [];
+      for (let i = 0; i < size; i++) {
+        const l = layer[i];
+        if (l >= 0) {
+          if (!buckets[l]) buckets[l] = [];
+          buckets[l].push({ x: i % w, y: (i / w) | 0 });
+        }
+      }
+      const order = [];
+      for (let i = 0; i < buckets.length; i++) {
+        const b = buckets[i];
+        if (b) for (let j = 0; j < b.length; j++) order.push(b[j]);
+      }
+      const map = getSelectedMap(selItem);
+      let added = 0;
+      for (let i = 0; i < order.length && added < need; i++) {
+        const p = order[i];
+        if (map && map.has(keyFor(p.x, p.y))) continue;
+        if (selectedOverrideColorId == null && isSamePaletteIdAsBase(selItem, p.x, p.y)) continue;
+        if (selectedOverrideColorId != null && selectedOverrideColorId !== 0 && isPremiumColorId(selectedOverrideColorId)) {
+          const remain = getPremiumColorRemainingLimit(selectedOverrideColorId);
+          if (!(remain > 0)) break;
+        }
+        const did = addPixelSelection(selItem, p.x, p.y, selectedOverrideColorId != null ? selectedOverrideColorId : null);
+        if (did) added++;
       }
       return added;
     }
