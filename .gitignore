@@ -1,3 +1,6 @@
 db/
 node_modules/
 WPlace-Helper/WPlace-Helper.zip
+*.exe
+ACLib/
+*.png
