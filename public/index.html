@@ -6516,10 +6516,21 @@ function loadImage(area, no, preserveView = false) {
       const savedAutoStart = localStorage.getItem('ready.autoStart');
       autoStart = (savedAutoStart === '1' || savedAutoStart === 'true');
       updateAutoStartUi();
+      
+      // Khôi phục trạng thái auto select nếu cần
+      const savedAutoSelectState = localStorage.getItem('ready.autoSelectState');
+      if (savedAutoSelectState === 'active' && autoMode) {
+        // Đặt lại trạng thái auto select
+        try { localStorage.setItem('ready.autoSelectState', 'active'); } catch {}
+      }
     } catch {}
     if (autoModeTrack) autoModeTrack.addEventListener('click', () => {
       autoMode = !autoMode;
       try { localStorage.setItem('ready.autoMode', autoMode ? '1' : '0'); } catch {}
+      if (!autoMode) {
+        // Xóa trạng thái auto select khi tắt auto mode
+        try { localStorage.removeItem('ready.autoSelectState'); } catch {}
+      }
       updateAutoModeUi();
     });
     if (autoStartTrack) autoStartTrack.addEventListener('click', () => {
@@ -6527,7 +6538,12 @@ function loadImage(area, no, preserveView = false) {
       try { localStorage.setItem('ready.autoStart', autoStart ? '1' : '0'); } catch {}
       updateAutoStartUi();
     });
-    if (autoModeLabelLeft) autoModeLabelLeft.addEventListener('click', () => { autoMode = false; try { localStorage.setItem('ready.autoMode','0'); } catch {}; updateAutoModeUi(); });
+    if (autoModeLabelLeft) autoModeLabelLeft.addEventListener('click', () => { 
+      autoMode = false; 
+      try { localStorage.setItem('ready.autoMode','0'); } catch {}
+      try { localStorage.removeItem('ready.autoSelectState'); } catch {}
+      updateAutoModeUi(); 
+    });
     if (autoModeLabelRight) autoModeLabelRight.addEventListener('click', () => { autoMode = true; try { localStorage.setItem('ready.autoMode','1'); } catch {}; updateAutoModeUi(); });
     if (autoStartLabelLeft) autoStartLabelLeft.addEventListener('click', () => { autoStart = false; try { localStorage.setItem('ready.autoStart','0'); } catch {}; updateAutoStartUi(); });
     if (autoStartLabelRight) autoStartLabelRight.addEventListener('click', () => { autoStart = true; try { localStorage.setItem('ready.autoStart','1'); } catch {}; updateAutoStartUi(); });
@@ -6722,8 +6738,12 @@ function loadImage(area, no, preserveView = false) {
         if (readyPixelEl) readyPixelEl.hidden = true;
         if (readyAccountList) readyAccountList.hidden = true;
       } catch {}
-      try { updateAutoSelectButtonLabel(); } catch {}
-      try { updatePixelMarkers(); } catch {}
+                    try { updateAutoSelectButtonLabel(); } catch {}
+              try { updatePixelMarkers(); } catch {}
+       
+       // Xóa trạng thái auto select khi reset
+       try { localStorage.removeItem('ready.autoSelectState'); } catch {}
+      
       render();
     }
     if (readyBtn && readyPopup) {
@@ -6786,6 +6806,20 @@ function loadImage(area, no, preserveView = false) {
                 updatePixelMarkers();
                 updateReadySelectionLabel();
               }
+              
+              // Tự động thực hiện auto select nếu auto mode đang bật và có trạng thái active
+              if (autoMode) {
+                const savedAutoSelectState = localStorage.getItem('ready.autoSelectState');
+                if (savedAutoSelectState === 'active' && autoSelectBtn) {
+                  // Delay một chút để đảm bảo UI đã được cập nhật
+                  setTimeout(() => {
+                    try {
+                      autoSelectDeleteMode = false;
+                      autoSelectBtn.click();
+                    } catch {}
+                  }, 100);
+                }
+              }
             } else {
               readyGlobalMode = false;
               if (readyLockedItem) {
@@ -6796,7 +6830,10 @@ function loadImage(area, no, preserveView = false) {
               
               try { pixelHoverEl.hidden = true; if (pixelSelectedList) pixelSelectedList.hidden = true; } catch {}
               
-              try { if (readyAccountList) readyAccountList.hidden = true; } catch {}
+                              try { if (readyAccountList) readyAccountList.hidden = true; } catch {}
+               
+               // Xóa trạng thái auto select khi đóng ready popup
+               try { localStorage.removeItem('ready.autoSelectState'); } catch {}
             }
           } catch {}
           try { updateAutoSelectButtonLabel(); } catch {}
@@ -6825,6 +6862,11 @@ function loadImage(area, no, preserveView = false) {
           try { updateReadySelectionLabel(); updateStartEnabled(); updatePixelMarkers(); render(); } catch {}
           try { refreshPaletteTooltips(); } catch {}
           return;
+        }
+        
+        // Lưu trạng thái auto select khi được click thủ công
+        if (autoMode) {
+          try { localStorage.setItem('ready.autoSelectState', 'active'); } catch {}
         }
 
         // Force auto-select to act as Transparent (no override color)
@@ -7120,6 +7162,10 @@ if (startBtn) {
         if (r && r.status === 429) {
           hadRequestError = true;
           try { showToast(t('messages.cfClearanceChange'), 'error', 3500); } catch { showToast('Please change cf_clearance.', 'error', 3500); }
+          // Duy trì trạng thái auto select khi có lỗi rate limit
+          if (autoMode) {
+            try { localStorage.setItem('ready.autoSelectState', 'active'); } catch {}
+          }
           break;
         }
         if (!r.ok) {
@@ -7129,6 +7175,10 @@ if (startBtn) {
           } else {
             hadRequestError = true;
             showToast(r.payload ? JSON.stringify(r.payload) : (r.text || r.error || t('messages.errorGeneric')), 'error', 3000);
+            // Duy trì trạng thái auto select khi có lỗi khác
+            if (autoMode) {
+              try { localStorage.setItem('ready.autoSelectState', 'active'); } catch {}
+            }
             break;
           }
         } else {
@@ -7153,11 +7203,34 @@ if (startBtn) {
     if (missingTotal > 0) {
       showToast(t('messages.insufficientPixelPower', { n: missingTotal }), 'error', 3000);
     }
+    
+    // Duy trì trạng thái auto select ngay cả khi có lỗi
+    if (autoMode && hadRequestError) {
+      try { localStorage.setItem('ready.autoSelectState', 'active'); } catch {}
+      // Thực hiện auto select tiếp theo ngay cả khi có lỗi
+      try {
+        await loadAccounts();
+        try { renderReadyAccountList(); } catch {}
+        updateReadyPixelForSelectedAccounts();
+        const nextId = pickNextBestAccountId(usedIds);
+        if (nextId != null) {
+          readySelectedAccountIds = [nextId];
+          try { renderReadyAccountList(); } catch {}
+          updateReadyPixelForSelectedAccounts();
+          try { await new Promise(resolve => setTimeout(resolve, 300)); } catch {}
+          if (autoSelectBtn) { 
+            autoSelectDeleteMode = false; 
+            try { localStorage.setItem('ready.autoSelectState', 'active'); } catch {}
+            autoSelectBtn.click(); 
+          }
+        }
+      } catch {}
+    }
     try { await loadAccounts(); } catch {}
     try { updateReadySelectionLabel(); } catch {}
     render();
     // Auto mode: después de pintar, selecciona la siguiente cuenta y auto selecciona píxeles
-    if (autoMode && paintedAny && !hadRequestError) {
+    if (autoMode && paintedAny) {
       try {
         await loadAccounts();
         try { renderReadyAccountList(); } catch {}
@@ -7168,7 +7241,12 @@ if (startBtn) {
           try { renderReadyAccountList(); } catch {}
           updateReadyPixelForSelectedAccounts();
           try { await new Promise(resolve => setTimeout(resolve, didReload ? 50 : 300)); } catch {}
-          if (autoSelectBtn) { autoSelectDeleteMode = false; autoSelectBtn.click(); }
+          if (autoSelectBtn) { 
+            autoSelectDeleteMode = false; 
+            // Lưu trạng thái auto select để tránh bị reset
+            try { localStorage.setItem('ready.autoSelectState', 'active'); } catch {}
+            autoSelectBtn.click(); 
+          }
         }
       } catch {}
     }
@@ -7222,6 +7300,10 @@ if (startBtn) {
           if (r && r.status === 429) {
             hadRequestError = true;
             try { showToast(t('messages.cfClearanceChange'), 'error', 3500); } catch { showToast('Please change cf_clearance.', 'error', 3500); }
+            // Duy trì trạng thái auto select khi có lỗi rate limit
+            if (autoMode) {
+              try { localStorage.setItem('ready.autoSelectState', 'active'); } catch {}
+            }
             break;
           }
           if (!r.ok) {
@@ -7231,6 +7313,10 @@ if (startBtn) {
             } else {
               hadRequestError = true;
               showToast(r.payload ? JSON.stringify(r.payload) : (r.text || r.error || t('messages.errorGeneric')), 'error', 3000);
+              // Duy trì trạng thái auto select khi có lỗi khác
+              if (autoMode) {
+                try { localStorage.setItem('ready.autoSelectState', 'active'); } catch {}
+              }
               break;
             }
           }
@@ -7250,11 +7336,34 @@ if (startBtn) {
         if (assignedCount < total && !hadRequestError) {
           showToast(t('messages.insufficientPixelPower', { n: (total - assignedCount) }), 'error', 3000);
         }
+        
+        // Duy trì trạng thái auto select ngay cả khi có lỗi
+        if (autoMode && hadRequestError) {
+          try { localStorage.setItem('ready.autoSelectState', 'active'); } catch {}
+          // Thực hiện auto select tiếp theo ngay cả khi có lỗi
+          try {
+            await loadAccounts();
+            try { renderReadyAccountList(); } catch {}
+            updateReadyPixelForSelectedAccounts();
+            const nextId = pickNextBestAccountId(usedIds);
+            if (nextId != null) {
+              readySelectedAccountIds = [nextId];
+              try { renderReadyAccountList(); } catch {}
+              updateReadyPixelForSelectedAccounts();
+              try { await new Promise(resolve => setTimeout(resolve, 300)); } catch {}
+              if (autoSelectBtn) { 
+                autoSelectDeleteMode = false; 
+                try { localStorage.setItem('ready.autoSelectState', 'active'); } catch {}
+                autoSelectBtn.click(); 
+              }
+            }
+          } catch {}
+        }
         try { await loadAccounts(); } catch {}
         try { updateReadySelectionLabel(); } catch {}
         render();
         // Auto mode: después de pintar, selecciona la siguiente cuenta y auto selecciona píxeles
-if (autoMode && assignedCount > 0 && !hadRequestError) {
+if (autoMode && assignedCount > 0) {
   try {
     await loadAccounts();
     try { renderReadyAccountList(); } catch {}
@@ -7265,7 +7374,12 @@ if (autoMode && assignedCount > 0 && !hadRequestError) {
       try { renderReadyAccountList(); } catch {}
       updateReadyPixelForSelectedAccounts();
       try { await new Promise(resolve => setTimeout(resolve, didReload ? 50 : 300)); } catch {}
-      if (autoSelectBtn) { autoSelectDeleteMode = false; autoSelectBtn.click(); }
+      if (autoSelectBtn) { 
+        autoSelectDeleteMode = false; 
+        // Lưu trạng thái auto select để tránh bị reset
+        try { localStorage.setItem('ready.autoSelectState', 'active'); } catch {}
+        autoSelectBtn.click(); 
+      }
     }
   } catch {}
 }
