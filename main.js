@@ -139,7 +139,7 @@ function sseBroadcast(eventName, payload) {
 }
 
 
-function deactivateAccountByToken(jToken) {
+function deactivateAccountByToken(jToken, reason = '500 when posting pixel') {
   try {
     if (!jToken) return;
     const accounts = readJson(ACCOUNTS_FILE, []);
@@ -149,8 +149,37 @@ function deactivateAccountByToken(jToken) {
     const updated = { ...current, active: false };
     accounts[idx] = updated;
     writeJson(ACCOUNTS_FILE, accounts);
-    console.log('[auto] account deactivated due to 500 when posting pixel:', current && current.name ? current.name : '(unknown)');
+    console.log(`[auto] account deactivated due to ${reason}:`, current && current.name ? current.name : '(unknown)');
   } catch {}
+}
+
+function checkForSuspensionError(errorMessage) {
+  if (!errorMessage || typeof errorMessage !== 'string') return false;
+  const lowerMessage = errorMessage.toLowerCase();
+  return lowerMessage.includes('suspension') || lowerMessage.includes('suspended');
+}
+
+function handleBackendError(jToken, errorMessage, statusCode) {
+  try {
+    if (!jToken) return false;
+    
+    // Kiểm tra nếu có lỗi suspension
+    if (checkForSuspensionError(errorMessage)) {
+      deactivateAccountByToken(jToken, 'suspension error from backend');
+      return true; // Đã xử lý suspension
+    }
+    
+    // Xử lý các lỗi 500+ như trước
+    if (statusCode >= 500) {
+      deactivateAccountByToken(jToken, `${statusCode} error from backend`);
+      return true;
+    }
+    
+    return false; // Không phải lỗi cần deactivate
+  } catch (e) {
+    console.error('Error handling backend error:', e);
+    return false;
+  }
 }
 
 async function readJsonBody(req) {
@@ -234,8 +263,16 @@ async function fetchMeAxios(cf_clearance, token) {
 async function fetchMe(cf_clearance, token) {
   debugLog('GET /me via got-scraping (requestMeLikePython)');
   const r = await requestMeLikePython({ cf_clearance, j: token, silent: true });
-  if (!r || r.status !== 200 || !r.body) return null;
-  try { return JSON.parse(r.body); } catch { return null; }
+  if (!r || r.status !== 200 || !r.body) {
+    // Trả về thông tin lỗi để xử lý suspension
+    return { error: true, status: r ? r.status : 0, message: r ? r.body : '' };
+  }
+  try { 
+    const data = JSON.parse(r.body);
+    return data; 
+  } catch { 
+    return { error: true, status: r ? r.status : 0, message: r.body }; 
+  }
 }
 
 async function fetchMePuppeteer(cf_clearance, token) {
@@ -280,6 +317,18 @@ async function purchaseProduct(cf_clearance, token, productId, amount) {
         timeout: { request: 30000 }
       });
       const status = r && (r.statusCode || r.status) || 0;
+      const text = r && (typeof r.body === 'string' ? r.body : (r.body ? String(r.body) : ''));
+      
+      // Kiểm tra lỗi suspension
+      try {
+        let errorMessage = '';
+        try {
+          const responseData = JSON.parse(text);
+          errorMessage = responseData.error || responseData.message || '';
+        } catch {}
+        handleBackendError(token, errorMessage, status);
+      } catch {}
+      
       if (status === 200) {
         try {
           const data = typeof r.body === 'string' ? JSON.parse(r.body) : r.body;
@@ -314,6 +363,15 @@ async function purchaseProduct(cf_clearance, token, productId, amount) {
           try {
             const data = JSON.parse(buf);
             ok = resp.statusCode === 200 && data && data.success === true;
+            
+            // Kiểm tra lỗi suspension
+            if (!ok) {
+              let errorMessage = '';
+              try {
+                errorMessage = data.error || data.message || '';
+              } catch {}
+              handleBackendError(token, errorMessage, resp.statusCode);
+            }
           } catch {}
           resolve(ok);
         });
@@ -552,9 +610,17 @@ function startServer(port, host) {
               const status = r && (r.statusCode || r.status) || 0;
               const text = r && (typeof r.body === 'string' ? r.body : (r.body ? String(r.body) : ''));
               debugLog('proxy pixel POST end (got-scraping)', { status, bodyPreview: String(text || '').slice(0, 300) });
-              if (status >= 500) {
-                try { deactivateAccountByToken(jToken); } catch {}
-              }
+              
+              // Kiểm tra lỗi suspension và các lỗi khác
+              try {
+                let errorMessage = '';
+                try {
+                  const responseData = JSON.parse(text);
+                  errorMessage = responseData.error || responseData.message || '';
+                } catch {}
+                handleBackendError(jToken, errorMessage, status);
+              } catch {}
+              
               res.writeHead(status || 502, { 'Content-Type': 'application/json; charset=utf-8' });
               res.end(text);
               return;
@@ -587,9 +653,17 @@ function startServer(port, host) {
               const text = buf.toString('utf8');
               const statusCode = up.statusCode || 0;
               debugLog('proxy pixel POST end', { status: statusCode, bodyPreview: text.slice(0, 300) });
-              if (statusCode >= 500) {
-                try { deactivateAccountByToken(jToken); } catch {}
-              }
+              
+              // Kiểm tra lỗi suspension và các lỗi khác
+              try {
+                let errorMessage = '';
+                try {
+                  const responseData = JSON.parse(text);
+                  errorMessage = responseData.error || responseData.message || '';
+                } catch {}
+                handleBackendError(jToken, errorMessage, statusCode);
+              } catch {}
+              
               res.writeHead(statusCode || 502, { 'Content-Type': 'application/json; charset=utf-8' });
               res.end(text);
             });
@@ -665,6 +739,17 @@ function startServer(port, host) {
               const status = r && (r.statusCode || r.status) || 0;
               const text = r && (typeof r.body === 'string' ? r.body : (r.body ? String(r.body) : ''));
               debugLog('proxy purchase POST end (got-scraping)', { status, bodyPreview: String(text || '').slice(0, 300) });
+              
+              // Kiểm tra lỗi suspension và các lỗi khác
+              try {
+                let errorMessage = '';
+                try {
+                  const responseData = JSON.parse(text);
+                  errorMessage = responseData.error || responseData.message || '';
+                } catch {}
+                handleBackendError(jToken, errorMessage, status);
+              } catch {}
+              
               res.writeHead(status || 502, { 'Content-Type': 'application/json; charset=utf-8' });
               res.end(text);
               return;
@@ -698,6 +783,17 @@ function startServer(port, host) {
               const text = buf.toString('utf8');
               const statusCode = up.statusCode || 0;
               debugLog('proxy purchase POST end', { status: statusCode, bodyPreview: text.slice(0, 300) });
+              
+              // Kiểm tra lỗi suspension và các lỗi khác
+              try {
+                let errorMessage = '';
+                try {
+                  const responseData = JSON.parse(text);
+                  errorMessage = responseData.error || responseData.message || '';
+                } catch {}
+                handleBackendError(jToken, errorMessage, statusCode);
+              } catch {}
+              
               res.writeHead(statusCode || 502, { 'Content-Type': 'application/json; charset=utf-8' });
               res.end(text);
             });
@@ -808,6 +904,18 @@ function startServer(port, host) {
         const account = { id: Date.now(), name, token, cf_clearance, pixelCount: null, pixelMax: null, droplets: null, extraColorsBitmap: null, active: false, autobuy: null };
         try {
           const me = await fetchMe(cf_clearance, token);
+          
+          // Kiểm tra lỗi suspension
+          if (me && me.error) {
+            const errorMessage = me.message || '';
+            if (checkForSuspensionError(errorMessage)) {
+              // Không tạo account nếu có lỗi suspension
+              res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+              res.end(JSON.stringify({ error: 'Account suspended by backend' }));
+              return;
+            }
+          }
+          
           if (me && me.charges) {
             account.pixelCount = Number(me.charges.count);
             account.pixelMax = Number(me.charges.max);
@@ -850,6 +958,21 @@ function startServer(port, host) {
         let me = null;
         try {
           me = await fetchMe(cf, acct.token);
+          
+          // Kiểm tra lỗi suspension
+          if (me && me.error) {
+            const errorMessage = me.message || '';
+            if (checkForSuspensionError(errorMessage)) {
+              // Deactivate account nếu có lỗi suspension
+              handleBackendError(acct.token, errorMessage, me.status);
+              acct.active = false;
+              accounts[idx] = acct;
+              writeJson(ACCOUNTS_FILE, accounts);
+              res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+              res.end(JSON.stringify(acct));
+              return;
+            }
+          }
         } catch (err) {
           const msg = (err && err.message) ? String(err.message) : String(err);
           const code = (err && err.code) ? String(err.code) : '';
